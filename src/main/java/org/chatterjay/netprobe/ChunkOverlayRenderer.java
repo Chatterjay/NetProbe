@@ -9,6 +9,7 @@ import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.renderer.GameRenderer;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.culling.Frustum;
+import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.levelgen.Heightmap;
 import net.minecraft.world.phys.AABB;
@@ -78,6 +79,7 @@ public class ChunkOverlayRenderer {
         try {
             doTestRendering(cam, "A-Event");
             doHeatmap(cam, partialTick, frustum, level, "A-Event");
+            renderBlockOverlays(cam, "A-Event");
         } finally {
             RenderSystem.enableDepthTest();
             RenderSystem.enableCull();
@@ -180,6 +182,11 @@ public class ChunkOverlayRenderer {
             return;
         }
 
+        // 计算所有区块的平均流量
+        long sumAll = 0;
+        for (Map.Entry<ChunkPos, long[]> e : chunks) sumAll += e.getValue()[0];
+        double avgBytes = (double) sumAll / chunks.size();
+
         Minecraft mc = Minecraft.getInstance();
         Font font = mc.font;
         ChunkPos playerChunk = mc.player.chunkPosition();
@@ -216,8 +223,9 @@ public class ChunkOverlayRenderer {
             float ratio = (float) total / maxBytes;
             double h = 2.0 + ratio * MAX_HEIGHT;
             boolean isTop = entry == chunks.get(0);
+            boolean aboveAverage = total > avgBytes;
 
-            visible.add(new RenderChunk(pos, total, last, sy, ratio, h, isTop));
+            visible.add(new RenderChunk(pos, total, last, sy, ratio, h, isTop, aboveAverage));
         }
 
         if (visible.isEmpty()) {
@@ -243,6 +251,8 @@ public class ChunkOverlayRenderer {
             } else if (mode == 3) {
                 renderWireframe(visible, gameTime);
             }
+            // 高于平均流量的区块用高亮边框框起来
+            renderAboveAverageHighlight(visible, gameTime, source);
             renderLabels(visible, font, camera, partialTick);
         } catch (Exception e) {
             LOGGER.error("[{}][热力图] 渲染异常: {} {}",
@@ -390,6 +400,118 @@ public class ChunkOverlayRenderer {
         }
     }
 
+    // ===== 高于平均流量的区块高亮边框 =====
+    private static void renderAboveAverageHighlight(java.util.ArrayList<RenderChunk> chunks, float gameTime, String source) {
+        boolean any = false;
+        for (RenderChunk rc : chunks) {
+            if (!rc.aboveAverage) continue;
+            any = true;
+            break;
+        }
+        if (!any) return;
+
+        RenderSystem.setShader(GameRenderer::getPositionColorShader);
+        int hlColor = 0xFFFFFFFF; // 白色亮边框
+
+        for (RenderChunk rc : chunks) {
+            if (!rc.aboveAverage) continue;
+
+            double mx = rc.pos.getMinBlockX(), Mx = rc.pos.getMaxBlockX() + 1;
+            double mz = rc.pos.getMinBlockZ(), Mz = rc.pos.getMaxBlockZ() + 1;
+            double y = rc.surfaceY + 0.1;
+            double ty = y + rc.height + 0.5;
+
+            BufferBuilder bb = new BufferBuilder(512);
+            bb.begin(VertexFormat.Mode.DEBUG_LINES, DefaultVertexFormat.POSITION_COLOR);
+            // bottom rect
+            for (double[] v : new double[][]{
+                {mx, y, mz, hlColor}, {Mx, y, mz, hlColor}, {Mx, y, mz, hlColor}, {Mx, y, Mz, hlColor},
+                {Mx, y, Mz, hlColor}, {mx, y, Mz, hlColor}, {mx, y, Mz, hlColor}, {mx, y, mz, hlColor}
+            }) { bb.vertex((float)v[0], (float)v[1], (float)v[2]).color((int)v[3]).endVertex(); }
+            // top rect
+            for (double[] v : new double[][]{
+                {mx, ty, mz, hlColor}, {Mx, ty, mz, hlColor}, {Mx, ty, mz, hlColor}, {Mx, ty, Mz, hlColor},
+                {Mx, ty, Mz, hlColor}, {mx, ty, Mz, hlColor}, {mx, ty, Mz, hlColor}, {mx, ty, mz, hlColor}
+            }) { bb.vertex((float)v[0], (float)v[1], (float)v[2]).color((int)v[3]).endVertex(); }
+            // verticals
+            for (double[] v : new double[][]{
+                {mx, y, mz, hlColor}, {mx, ty, mz, hlColor}, {Mx, y, mz, hlColor}, {Mx, ty, mz, hlColor},
+                {Mx, y, Mz, hlColor}, {Mx, ty, Mz, hlColor}, {mx, y, Mz, hlColor}, {mx, ty, Mz, hlColor}
+            }) { bb.vertex((float)v[0], (float)v[1], (float)v[2]).color((int)v[3]).endVertex(); }
+            BufferUploader.drawWithShader(bb.end());
+
+            if (shouldLog()) {
+                LOGGER.info("[{}] 高亮区块 [{}] 流量: {} (avg)", source, rc.pos, formatBytes(rc.total));
+            }
+        }
+    }
+
+    // ===== 方块级流量覆盖层 =====
+    private static void renderBlockOverlays(Camera camera, String source) {
+        BlockTrafficTracker bTracker = BlockTrafficTracker.INSTANCE;
+        if (bTracker.getBlockCount() <= 0) return;
+
+        List<Map.Entry<BlockPos, long[]>> topBlocks = bTracker.getTopBlocks(20);
+        if (topBlocks.isEmpty()) return;
+
+        long maxBlockBytes = topBlocks.get(0).getValue()[0];
+        if (maxBlockBytes <= 0) return;
+
+        Minecraft mc = Minecraft.getInstance();
+        Font font = mc.font;
+
+        RenderSystem.setShader(GameRenderer::getPositionColorShader);
+        int hlColor = 0xFF00FFFF; // 青色边框 = 方块级高亮
+        int count = 0;
+
+        for (Map.Entry<BlockPos, long[]> entry : topBlocks) {
+            if (count++ >= 10) break; // 最多10个方块
+            BlockPos bp = entry.getKey();
+            long total = entry.getValue()[0];
+            long updates = entry.getValue()[1];
+
+            // 只显示距离玩家 64 格内的方块
+            Vec3 cp = camera.getPosition();
+            double dist = Math.sqrt(bp.distToCenterSqr(cp.x, cp.y, cp.z));
+            if (dist > 64) continue;
+
+            double mx = bp.getX(), Mx = bp.getX() + 1;
+            double my = bp.getY(), My = bp.getY() + 1;
+            double mz = bp.getZ(), Mz = bp.getZ() + 1;
+
+            // 1x1x1 线框
+            BufferBuilder bb = new BufferBuilder(256);
+            bb.begin(VertexFormat.Mode.DEBUG_LINES, DefaultVertexFormat.POSITION_COLOR);
+            for (double[] v : new double[][]{
+                {mx, my, mz, hlColor}, {Mx, my, mz, hlColor}, {Mx, my, mz, hlColor}, {Mx, my, Mz, hlColor},
+                {Mx, my, Mz, hlColor}, {mx, my, Mz, hlColor}, {mx, my, Mz, hlColor}, {mx, my, mz, hlColor},
+                {mx, My, mz, hlColor}, {Mx, My, mz, hlColor}, {Mx, My, mz, hlColor}, {Mx, My, Mz, hlColor},
+                {Mx, My, Mz, hlColor}, {mx, My, Mz, hlColor}, {mx, My, Mz, hlColor}, {mx, My, mz, hlColor},
+                {mx, my, mz, hlColor}, {mx, My, mz, hlColor}, {Mx, my, mz, hlColor}, {Mx, My, mz, hlColor},
+                {Mx, my, Mz, hlColor}, {Mx, My, Mz, hlColor}, {mx, my, Mz, hlColor}, {mx, My, Mz, hlColor}
+            }) { bb.vertex((float)v[0], (float)v[1], (float)v[2]).color((int)v[3]).endVertex(); }
+            BufferUploader.drawWithShader(bb.end());
+
+            // 文字标签
+            String label = String.format("机:%s 次:%d", formatBytes(total), updates);
+            try {
+                PoseStack ps = new PoseStack();
+                ps.mulPose(camera.rotation());
+                ps.translate(-cp.x, -cp.y, -cp.z);
+                ps.translate(bp.getX() + 0.5, bp.getY() + 1.5, bp.getZ() + 0.5);
+                ps.mulPose(camera.rotation());
+                ps.scale(0.025f, -0.025f, 0.025f);
+
+                BufferBuilder lblBb = new BufferBuilder(4096);
+                MultiBufferSource.BufferSource bufSrc = MultiBufferSource.immediate(lblBb);
+                float tw = font.width(label);
+                font.drawInBatch(label, -tw / 2, 0, 0xFF00FFFF, false,
+                        ps.last().pose(), bufSrc, Font.DisplayMode.SEE_THROUGH, 0, 0xF000F0);
+                bufSrc.endBatch();
+            } catch (Exception ignored) {}
+        }
+    }
+
     // ===== Helpers =====
 
     private static int heatColor(float ratio, float pulse) {
@@ -435,8 +557,9 @@ public class ChunkOverlayRenderer {
         final float ratio;
         final double height;
         final boolean isTop;
+        final boolean aboveAverage;
 
-        RenderChunk(ChunkPos pos, long total, long last, int surfaceY, float ratio, double height, boolean isTop) {
+        RenderChunk(ChunkPos pos, long total, long last, int surfaceY, float ratio, double height, boolean isTop, boolean aboveAverage) {
             this.pos = pos;
             this.total = total;
             this.last = last;
@@ -444,6 +567,7 @@ public class ChunkOverlayRenderer {
             this.ratio = ratio;
             this.height = height;
             this.isTop = isTop;
+            this.aboveAverage = aboveAverage;
         }
     }
 }
