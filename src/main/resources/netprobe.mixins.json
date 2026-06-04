@@ -1,0 +1,20 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "org.chatterjay.netprobe.mixin",
+  "compatibilityLevel": "JAVA_8",
+  "refmap": "netprobe.refmap.json",
+  "mixins": [
+  ],
+  "client": [
+    "ChunkPacketMixin",
+    "ClientboundLevelChunkPacketDataAccessor",
+    "LevelRendererMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  },
+  "overwrites": {
+    "requireAnnotations": true
+  }
+}
