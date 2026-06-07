@@ -1,146 +1,103 @@
 package org.chatterjay.netprobe;
 
-import com.mojang.blaze3d.systems.RenderSystem;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.Font;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.resources.language.I18n;
+import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.ChunkPos;
+import net.minecraft.world.phys.BlockHitResult;
+import net.minecraft.world.phys.HitResult;
+import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.client.event.CustomizeGuiOverlayEvent;
+import net.minecraftforge.eventbus.api.SubscribeEvent;
+import net.minecraftforge.fml.common.Mod;
 
 import java.util.List;
 import java.util.Map;
 
+@Mod.EventBusSubscriber(modid = Netprobe.MODID, value = Dist.CLIENT, bus = Mod.EventBusSubscriber.Bus.FORGE)
 public class TrafficHUD {
 
-    private static final int LINE_HEIGHT = 10;
-    private static final int PADDING = 4;
-    private static final int BG_COLOR = 0x80000000;
-
-    public static void renderOverlay(GuiGraphics guiGraphics) {
-        if (!ChunkMeter.isHudVisible()) return;
+    @SubscribeEvent
+    public static void onDebugText(CustomizeGuiOverlayEvent.DebugText event) {
+        if (!ChunkMeter.isDebugVisible()) return;
 
         Minecraft mc = Minecraft.getInstance();
-        if (mc.player == null || mc.font == null) return;
+        if (mc.player == null || mc.level == null) return;
 
-        ChunkTrafficTracker tracker = ChunkTrafficTracker.INSTANCE;
-        Font font = mc.font;
+        ChunkTrafficTracker cTracker = ChunkTrafficTracker.INSTANCE;
+        ChunkPos currentChunk = mc.player.chunkPosition();
+        BlockTrafficTracker.INSTANCE.expireOldEntries(30000);
 
-        var pose = guiGraphics.pose();
-        pose.pushPose();
-        pose.translate(0, 0, 200);
+        // 标题
+        event.getLeft().add("");
+        event.getLeft().add(ChatFormatting.GOLD + I18n.get("netprobe.f3.title"));
 
-        var player = mc.player;
-        int px = (int) Math.floor(player.getX());
-        int py = (int) Math.floor(player.getY());
-        int pz = (int) Math.floor(player.getZ());
-        ChunkPos currentChunk = player.chunkPosition();
+        // 系统网卡 & 模组对比
+        double sysKBps = NetworkStats.getKBytesPerSecond();
+        double decoderBps = PacketTrafficTracker.INSTANCE.getDecoderBytesPerSecond();
+        double decoderKBps = decoderBps / 1024.0;
+        double estActualKBps = decoderKBps / 1.3;
 
-        List<Map.Entry<ChunkPos, long[]>> top = tracker.getTopChunks(5);
-
-        String overlayStatus = ChunkMeter.isOverlayVisible()
-                ? ChatFormatting.GREEN + " [热力图:" + ChunkMeter.getOverlayModeName() + "]" : "";
-        String title = ChatFormatting.GOLD + "ChunkMeter" + overlayStatus;
-        String posLine = String.format("位置: %d, %d, %d  |  区块: [%d, %d]",
-                px, py, pz, currentChunk.x, currentChunk.z);
-        String stats = String.format("区块数: %d  |  总流量: %s",
-                tracker.getChunkCount(), formatBytes(tracker.getTotalBytes()));
-
-        // Calculate width
-        int textWidth = font.width(title);
-        textWidth = Math.max(textWidth, font.width(posLine));
-        textWidth = Math.max(textWidth, font.width(stats));
-        for (Map.Entry<ChunkPos, long[]> entry : top) {
-            String dir = directionFrom(currentChunk, entry.getKey());
-            String line = String.format("#%d [%d, %d] 累:%s 单:%s  %s",
-                    top.indexOf(entry) + 1, entry.getKey().x, entry.getKey().z,
-                    formatBytes(entry.getValue()[0]), formatBytes(entry.getValue()[1]), dir);
-            textWidth = Math.max(textWidth, font.width(line));
+        if (NetworkStats.isAvailable()) {
+            String pct = sysKBps > 0 ? String.format("%.0f", decoderKBps / sysKBps * 100) : "0";
+            event.getLeft().add(I18n.get("netprobe.f3.system_card") + fmtKB(sysKBps) + I18n.get("netprobe.f3.system_card_unit"));
+            event.getLeft().add(I18n.get("netprobe.f3.mod_measure") + fmtKB(decoderKBps)
+                    + I18n.get("netprobe.f3.mod_measure_body") + fmtKB(estActualKBps)
+                    + I18n.get("netprobe.f3.mod_measure_tail") + pct + "%]");
+        } else {
+            event.getLeft().add(I18n.get("netprobe.f3.system_loading"));
         }
+        event.getLeft().add(I18n.get("netprobe.f3.total_traffic") + formatBytes(PacketTrafficTracker.INSTANCE.getDecoderTotalBytes()));
 
-        // Layout
-        int x = PADDING;
-        int y = PADDING;
-        int bgWidth = textWidth + PADDING * 2 + 4;
-        int lines = 3; // title, pos, stats
+        // 区块/方块详情
+        event.getLeft().add(ChatFormatting.GRAY + I18n.get("netprobe.f3.chunk_section"));
+        event.getLeft().add(I18n.get("netprobe.f3.chunk_detail_pkt") + formatBytes(cTracker.getChunkPacketBytes())
+                + I18n.get("netprobe.f3.chunk_detail_plus") + formatBytes(cTracker.getBlockUpdateBytes())
+                + I18n.get("netprobe.f3.chunk_detail_eq") + formatBytes(cTracker.getTotalBytes()));
+        event.getLeft().add(I18n.get("netprobe.f3.chunk_count") + cTracker.getChunkCount());
+
+        // 当前区块
+        long curTotal = cTracker.getTotalBytes(currentChunk);
+        long curLast = cTracker.getLastBytes(currentChunk);
+        event.getLeft().add(I18n.get("netprobe.f3.current_chunk_prefix") + currentChunk.x + "," + currentChunk.z
+                + I18n.get("netprobe.f3.current_chunk_mid") + formatBytes(curTotal)
+                + I18n.get("netprobe.f3.current_chunk_last") + formatBytes(curLast));
+
+        // Top区块
+        List<Map.Entry<ChunkPos, long[]>> top = cTracker.getTopChunks(3);
         if (!top.isEmpty()) {
-            lines += 1 + top.size(); // header + entries
-        }
-        int bgHeight = lines * LINE_HEIGHT + PADDING * 2;
-
-        RenderSystem.enableBlend();
-        RenderSystem.defaultBlendFunc();
-        guiGraphics.fill(x - 2, y - 2, x + bgWidth, y + bgHeight, BG_COLOR);
-        RenderSystem.disableBlend();
-
-        y += PADDING;
-        guiGraphics.drawString(font, title, x, y, 0xFFFFFF, false);
-        y += LINE_HEIGHT;
-        guiGraphics.drawString(font, posLine, x, y, 0xFFFFFF, false);
-        y += LINE_HEIGHT;
-        guiGraphics.drawString(font, stats, x, y, 0xFFFFFF, false);
-        y += LINE_HEIGHT;
-
-        if (!top.isEmpty()) {
-            guiGraphics.drawString(font, ChatFormatting.GRAY + "--- Top 5 ---", x, y, 0xFFFFFF, false);
-            y += LINE_HEIGHT;
-            int rank = 1;
-            for (Map.Entry<ChunkPos, long[]> entry : top) {
-                String dir = directionFrom(currentChunk, entry.getKey());
-                String line = String.format("#%d [%d, %d] 累:%s 单:%s  %s",
-                        rank++, entry.getKey().x, entry.getKey().z,
-                        formatBytes(entry.getValue()[0]), formatBytes(entry.getValue()[1]), dir);
-                guiGraphics.drawString(font, ChatFormatting.AQUA + line, x, y, 0xFFFFFF, false);
-                y += LINE_HEIGHT;
+            StringBuilder sb = new StringBuilder(ChatFormatting.GRAY + I18n.get("netprobe.f3.top_chunks"));
+            for (int i = 0; i < top.size(); i++) {
+                if (i > 0) sb.append("  ");
+                ChunkPos p = top.get(i).getKey();
+                sb.append("[").append(p.x).append(",").append(p.z).append("]").append(formatBytes(top.get(i).getValue()[0]));
             }
+            event.getLeft().add(sb.toString());
         }
 
-        pose.popPose();
+        // 方块追踪
+        event.getLeft().add(I18n.get("netprobe.f3.block_summary") + BlockTrafficTracker.INSTANCE.getBlockCount()
+                + I18n.get("netprobe.f3.block_summary_unit") + formatBytes(BlockTrafficTracker.INSTANCE.getTotalBytes()));
+
+        // 指向方块
+        if (mc.hitResult != null && mc.hitResult.getType() == HitResult.Type.BLOCK) {
+            BlockPos bp = ((BlockHitResult) mc.hitResult).getBlockPos();
+            event.getLeft().add(I18n.get("netprobe.f3.target_block_prefix") + bp.getX() + "," + bp.getY() + "," + bp.getZ()
+                    + I18n.get("netprobe.f3.target_block_mid") + formatBytes(BlockTrafficTracker.INSTANCE.getTotalBytes(bp))
+                    + I18n.get("netprobe.f3.target_block_last") + formatBytes(BlockTrafficTracker.INSTANCE.getLastBytes(bp))
+                    + " " + BlockTrafficTracker.INSTANCE.getUpdateCount(bp) + I18n.get("netprobe.f3.target_block_updates"));
+        }
     }
 
-    private static String directionFrom(ChunkPos origin, ChunkPos target) {
-        int dx = target.x - origin.x;
-        int dz = target.z - origin.z;
-
-        String dirX;
-        String dirZ;
-        if (dx > 0) {
-            dirX = "东";
-        } else if (dx < 0) {
-            dirX = "西";
-        } else {
-            dirX = "";
-        }
-        if (dz > 0) {
-            dirZ = "南";
-        } else if (dz < 0) {
-            dirZ = "北";
-        } else {
-            dirZ = "";
-        }
-
-        if (dx == 0 && dz == 0) return ChatFormatting.GREEN + "★ 当前";
-
-        String arrow;
-        if (dx == 0) {
-            arrow = dz < 0 ? "↑" : "↓";
-        } else if (dz == 0) {
-            arrow = dx > 0 ? "→" : "←";
-        } else if (dx > 0 && dz < 0) {
-            arrow = "↗";
-        } else if (dx > 0 && dz > 0) {
-            arrow = "↘";
-        } else if (dx < 0 && dz < 0) {
-            arrow = "↖";
-        } else {
-            arrow = "↙";
-        }
-
-        return String.format("%s%s %s", dirZ, dirX, arrow);
+    private static String fmtKB(double kb) {
+        return String.format("%.0f", kb);
     }
 
     private static String formatBytes(long bytes) {
         if (bytes < 1024) return bytes + " B";
         if (bytes < 1024 * 1024) return String.format("%.1f KB", bytes / 1024.0);
-        return String.format("%.1f MB", bytes / (1024.0 * 1024.0));
+        if (bytes < 1024 * 1024 * 1024) return String.format("%.1f MB", bytes / (1024.0 * 1024.0));
+        return String.format("%.1f GB", bytes / (1024.0 * 1024.0 * 1024.0));
     }
 }

@@ -14,9 +14,30 @@ public class ChunkTrafficTracker {
     // long[] = [累计流量, 单次流量]
     private final ConcurrentHashMap<ChunkPos, long[]> chunkTraffic = new ConcurrentHashMap<>();
     private final AtomicLong totalBytes = new AtomicLong(0);
+    private final AtomicLong chunkPacketBytes = new AtomicLong(0);
+    private final AtomicLong blockUpdateBytes = new AtomicLong(0);
     private final AtomicInteger chunkCount = new AtomicInteger(0);
 
-    private ChunkTrafficTracker() {}
+    private long ratePrevBytes = 0;
+    private long ratePrevTime = 0;
+    private double rateBytesPerSec = 0;
+
+    private ChunkTrafficTracker() {
+        ratePrevTime = System.currentTimeMillis();
+    }
+
+    /** 计算每秒流量 (基于前后两次调用的增量) */
+    public double getBytesPerSecond() {
+        long now = System.currentTimeMillis();
+        long curBytes = totalBytes.get();
+        long dt = now - ratePrevTime;
+        if (dt > 500) {
+            rateBytesPerSec = (double) (curBytes - ratePrevBytes) / dt * 1000.0;
+            ratePrevBytes = curBytes;
+            ratePrevTime = now;
+        }
+        return rateBytesPerSec;
+    }
 
     public void recordChunk(ChunkPos pos, long bytes) {
         chunkTraffic.merge(pos, new long[]{bytes, bytes}, (a, b) -> {
@@ -25,11 +46,31 @@ public class ChunkTrafficTracker {
             return a;
         });
         totalBytes.addAndGet(bytes);
+        chunkPacketBytes.addAndGet(bytes);
         chunkCount.incrementAndGet();
     }
 
+    /** 累加方块更新流量到对应区块，不增加区块记录数 */
+    public void addBlockBytes(ChunkPos pos, long bytes) {
+        chunkTraffic.merge(pos, new long[]{bytes, bytes}, (a, b) -> {
+            a[0] += bytes;
+            a[1] = bytes;
+            return a;
+        });
+        totalBytes.addAndGet(bytes);
+        blockUpdateBytes.addAndGet(bytes);
+    }
+
+    public long getChunkPacketBytes() { return chunkPacketBytes.get(); }
+    public long getBlockUpdateBytes() { return blockUpdateBytes.get(); }
+
     public long getTotalBytes() {
         return totalBytes.get();
+    }
+
+    public long getTotalBytes(ChunkPos pos) {
+        long[] data = chunkTraffic.get(pos);
+        return data != null ? data[0] : 0;
     }
 
     public int getChunkCount() {
@@ -51,6 +92,8 @@ public class ChunkTrafficTracker {
     public void reset() {
         chunkTraffic.clear();
         totalBytes.set(0);
+        chunkPacketBytes.set(0);
+        blockUpdateBytes.set(0);
         chunkCount.set(0);
     }
 }

@@ -10,7 +10,8 @@
     "BlockEntityDataMixin",
     "ChunkPacketMixin",
     "ClientboundLevelChunkPacketDataAccessor",
-    "LevelRendererMixin"
+    "PacketDecoderMixin",
+    "SectionBlocksUpdateMixin"
   ],
   "injectors": {
     "defaultRequire": 1
