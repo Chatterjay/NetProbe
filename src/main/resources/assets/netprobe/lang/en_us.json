@@ -28,5 +28,18 @@
   "netprobe.cmd.toggle_off": "NetProbe debug info disabled",
   "netprobe.cmd.reset": "NetProbe all stats reset",
   "netprobe.cmd.blockoverlay_on": "Block traffic overlay enabled",
-  "netprobe.cmd.blockoverlay_off": "Block traffic overlay disabled"
+  "netprobe.cmd.blockoverlay_off": "Block traffic overlay disabled",
+
+  "netprobe.config.title": "NetProbe Configuration",
+  "netprobe.config.overlay": "Overlay",
+  "netprobe.config.refreshInterval": "Refresh Interval (ticks)",
+  "netprobe.config.renderHeight": "Label Height",
+  "netprobe.config.overlayAlpha": "Overlay Opacity",
+  "netprobe.config.colors": "Colors",
+  "netprobe.config.colorLow": "Normal Color (hex)",
+  "netprobe.config.colorMid": "Warning Color (hex)",
+  "netprobe.config.colorHigh": "High Color (hex)",
+  "netprobe.config.thresholds": "Thresholds",
+  "netprobe.config.normalMax": "Normal Max (bytes)",
+  "netprobe.config.warningMax": "Warning Max (bytes)"
 }

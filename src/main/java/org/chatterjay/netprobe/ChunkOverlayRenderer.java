@@ -23,6 +23,9 @@ import java.util.Map;
 @Mod.EventBusSubscriber(modid = Netprobe.MODID, value = Dist.CLIENT, bus = Mod.EventBusSubscriber.Bus.FORGE)
 public class ChunkOverlayRenderer {
 
+    private static long lastRefreshTime = 0;
+    private static List<Map.Entry<BlockPos, long[]>> cachedEntries = List.of();
+
     @SubscribeEvent
     public static void onRenderLevelStage(RenderLevelStageEvent event) {
         if (event.getStage() != RenderLevelStageEvent.Stage.AFTER_PARTICLES) return;
@@ -35,7 +38,13 @@ public class ChunkOverlayRenderer {
 
         if (!ChunkMeter.isBlockOverlayVisible()) return;
 
-        List<Map.Entry<BlockPos, long[]>> entries = BlockTrafficTracker.INSTANCE.getTopBlocks(500);
+        long now = System.currentTimeMillis();
+        if (now - lastRefreshTime >= NetProbeConfig.refreshInterval.get() * 50L) {
+            lastRefreshTime = now;
+            cachedEntries = BlockTrafficTracker.INSTANCE.getTopBlocks(500);
+        }
+
+        List<Map.Entry<BlockPos, long[]>> entries = cachedEntries;
 
         Camera camera = mc.gameRenderer.getMainCamera();
         Vec3 camPos = camera.getPosition();
@@ -68,7 +77,7 @@ public class ChunkOverlayRenderer {
             float r = ((color >> 16) & 0xFF) / 255f;
             float g = ((color >> 8) & 0xFF) / 255f;
             float b = (color & 0xFF) / 255f;
-            float a = 0.15f;
+            float a = NetProbeConfig.overlayAlpha.get().floatValue();
 
             float x0 = pos.getX() + 0.02f;
             float y0 = pos.getY() + 0.02f;
@@ -128,7 +137,7 @@ public class ChunkOverlayRenderer {
             String line2 = formatBytes(last) + " | " + count;
 
             poseStack.pushPose();
-            poseStack.translate(pos.getX() + 0.5, pos.getY() + 1.04, pos.getZ() + 0.5);
+            poseStack.translate(pos.getX() + 0.5, pos.getY() + NetProbeConfig.renderHeight.get(), pos.getZ() + 0.5);
             poseStack.mulPose(camera.rotation());
             poseStack.scale(-0.025f, -0.025f, 0.025f);
 
@@ -155,19 +164,37 @@ public class ChunkOverlayRenderer {
     public static void renderOverlay(PoseStack poseStack, Camera camera, float partialTick, Frustum frustum) {
     }
 
-    /** Map bytes to ARGB heat color: green(low) → yellow → red(high) on log scale */
+    /** Map bytes to color using configured thresholds: normal → warning → high */
     private static int getHeatColor(long bytes) {
-        double t = Math.log10(Math.max(bytes, 1)) / Math.log10(1024); // 0 at 1B, 1 at 1KB
-        t = Math.min(t / 1.5, 1.0); // spread so 1KB is orange, need ~10KB for full red
-        if (t < 0.5) {
-            float s = (float)(t * 2);
-            int r = (int)(255 * s);
-            return (r << 16) | 0x00FF00;
+        long n = NetProbeConfig.normalMax.get();
+        long w = NetProbeConfig.warningMax.get();
+        int cLow = parseHex(NetProbeConfig.colorLow.get());
+        int cMid = parseHex(NetProbeConfig.colorMid.get());
+        int cHigh = parseHex(NetProbeConfig.colorHigh.get());
+
+        if (bytes <= n) {
+            return cLow;
+        } else if (bytes <= w) {
+            float t = (float)(bytes - n) / Math.max(w - n, 1);
+            return lerpColor(cLow, cMid, t);
         } else {
-            float s = (float)((t - 0.5) * 2);
-            int g = (int)(255 * (1 - s));
-            return 0xFF0000 | (g << 8);
+            // smooth transition beyond warning, capped at 10x warningMax for full red
+            float t = Math.min((float)(bytes - w) / (w * 9f + 1f), 1.0f);
+            return lerpColor(cMid, cHigh, t);
         }
+    }
+
+    private static int parseHex(String hex) {
+        try { return Integer.parseInt(hex, 16); } catch (NumberFormatException e) { return 0x00FF00; }
+    }
+
+    private static int lerpColor(int from, int to, float t) {
+        int fr = (from >> 16) & 0xFF, fg = (from >> 8) & 0xFF, fb = from & 0xFF;
+        int tr = (to >> 16) & 0xFF, tg = (to >> 8) & 0xFF, tb = to & 0xFF;
+        int r = fr + (int)((tr - fr) * t);
+        int g = fg + (int)((tg - fg) * t);
+        int b = fb + (int)((tb - fb) * t);
+        return (r << 16) | (g << 8) | b;
     }
 
     private static String formatBytes(long bytes) {

@@ -28,5 +28,18 @@
   "netprobe.cmd.toggle_off": "NetProbe 调试信息已关闭",
   "netprobe.cmd.reset": "NetProbe 全部统计已重置",
   "netprobe.cmd.blockoverlay_on": "方块流量覆盖层已开启",
-  "netprobe.cmd.blockoverlay_off": "方块流量覆盖层已关闭"
+  "netprobe.cmd.blockoverlay_off": "方块流量覆盖层已关闭",
+
+  "netprobe.config.title": "NetProbe 配置",
+  "netprobe.config.overlay": "覆盖层",
+  "netprobe.config.refreshInterval": "刷新间隔 (tick)",
+  "netprobe.config.renderHeight": "标签高度",
+  "netprobe.config.overlayAlpha": "覆盖层不透明度",
+  "netprobe.config.colors": "颜色",
+  "netprobe.config.colorLow": "正常颜色 (十六进制)",
+  "netprobe.config.colorMid": "警告颜色 (十六进制)",
+  "netprobe.config.colorHigh": "高流量颜色 (十六进制)",
+  "netprobe.config.thresholds": "阈值",
+  "netprobe.config.normalMax": "正常上限 (字节)",
+  "netprobe.config.warningMax": "警告上限 (字节)"
 }
