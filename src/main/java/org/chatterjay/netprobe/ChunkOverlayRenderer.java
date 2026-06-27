@@ -88,6 +88,10 @@ public class ChunkOverlayRenderer {
         PoseStack.Pose poseEntry = poseStack.last();
         Matrix4f matrix = poseEntry.pose();
 
+        if (NetProbeConfig.labelSeeThrough.get()) {
+            RenderSystem.disableDepthTest();
+        }
+
         OVERLAY.setupRenderState();
         VertexConsumer consumer = bufferSource.getBuffer(OVERLAY);
         for (Map.Entry<BlockPos, long[]> entry : entries) {
@@ -146,8 +150,14 @@ public class ChunkOverlayRenderer {
             poseStack.popPose();
         }
 
-        poseStack.popPose();
+        // font.drawInBatch 只缓存顶点，flush 必须在 restore depth test 之前
         bufferSource.endBatch();
+
+        if (NetProbeConfig.labelSeeThrough.get()) {
+            RenderSystem.enableDepthTest();
+        }
+
+        poseStack.popPose();
     }
 
     private static void renderBoxFill(VertexConsumer consumer, Matrix4f pose,
