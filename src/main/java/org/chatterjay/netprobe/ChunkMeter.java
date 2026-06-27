@@ -10,9 +10,13 @@ import net.minecraftforge.fml.common.Mod;
 public class ChunkMeter {
 
     private static boolean debugVisible = false;
+    private static boolean blockOverlayVisible = false;
 
     public static void toggleDebug() { debugVisible = !debugVisible; }
     public static boolean isDebugVisible() { return debugVisible; }
+
+    public static void toggleBlockOverlay() { blockOverlayVisible = !blockOverlayVisible; }
+    public static boolean isBlockOverlayVisible() { return blockOverlayVisible; }
 
     @SubscribeEvent
     public static void onPlayerLogin(PlayerEvent.PlayerLoggedInEvent event) {
@@ -23,11 +27,11 @@ public class ChunkMeter {
 
     @SubscribeEvent
     public static void onBlockBreak(BlockEvent.BreakEvent event) {
-        BlockTrafficTracker.INSTANCE.remove(event.getPos());
+        BlockTrafficTracker.INSTANCE.markBroken(event.getPos());
     }
 
     @SubscribeEvent
     public static void onBlockPlace(BlockEvent.EntityPlaceEvent event) {
-        BlockTrafficTracker.INSTANCE.remove(event.getPos());
+        BlockTrafficTracker.INSTANCE.markBroken(event.getPos());
     }
 }

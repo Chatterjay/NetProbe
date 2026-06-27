@@ -2,6 +2,7 @@ buildscript {
     repositories {
         maven { url = 'https://repo.spongepowered.org/repository/maven-public/' }
         maven { url = 'https://maven.minecraftforge.net/' }
+
         mavenCentral()
     }
     dependencies {
@@ -62,15 +63,76 @@ minecraft {
 }
 
 mixin {
-    add sourceSets.main, "${mod_id}.refmap.json"
-    config "${mod_id}.mixins.json"
+    add sourceSets.main, "org/chatterjay/netprobe/${mod_id}.refmap.json"
+    config "org/chatterjay/netprobe/${mod_id}.mixins.json"
+}
+
+tasks.named('compileJava', JavaCompile).configure {
+    doLast {
+        copy {
+            from layout.buildDirectory.file('tmp/compileJava/compileJava-refmap.json')
+            into layout.buildDirectory.file("resources/main/org/chatterjay/netprobe")
+            rename { "${mod_id}.refmap.json" }
+        }
+    }
 }
 
 sourceSets.main.resources { srcDir 'src/generated/resources' }
-
+repositories {
+    maven {
+        name = "TerraformersMC"
+        url = "https://maven.terraformersmc.com/"
+    }
+    maven {
+        name = "ModMaven"
+        url = "https://modmaven.dev/"
+    }
+    maven {
+        name = "Modrinth"
+        url = "https://api.modrinth.com/maven"
+    }
+    maven {
+        name = "CurseMaven"
+        url = "https://cursemaven.com"
+    }
+    maven {
+        name = "Shedaniel"
+        url = "https://maven.shedaniel.me/"
+    }
+    maven {
+        name = "IllusiveSoulworks"
+        url = "https://maven.theillusivec4.top/"
+    }
+    maven {
+        name = "BlameJared"
+        url = "https://maven.blamejared.com/"
+    }
+    maven {
+        name = "KotlinForForge"
+        url = "https://thedarkcolour.github.io/KotlinForForge/"
+    }
+}
 dependencies {
     minecraft "net.minecraftforge:forge:${minecraft_version}-${forge_version}"
     annotationProcessor 'org.spongepowered:mixin:0.8.5:processor'
+    implementation fg.deobf("me.shedaniel.cloth:cloth-config-forge:${cloth_config_version}")
+
+    runtimeOnly fg.deobf("maven.modrinth:geckolib:4.8.4")
+    runtimeOnly fg.deobf("curse.maven:ars-nouveau-401955:6688854")
+    runtimeOnly fg.deobf("curse.maven:curios-309927:6418456")
+    runtimeOnly fg.deobf("curse.maven:mekanism-268560:6552911")
+//    runtimeOnly fg.deobf("curse.maven:mekanism-generators-268566:6552914")
+//    runtimeOnly fg.deobf("curse.maven:mekanism-advancedgenerators-844063:5138626")
+    runtimeOnly fg.deobf("curse.maven:jei-238222:8292131")
+    runtimeOnly fg.deobf("curse.maven:super-factory-manager-306935:7736522")
+    runtimeOnly fg.deobf("curse.maven:smartbrainlib-661293:5654964")
+    runtimeOnly fg.deobf("curse.maven:modonomicon-324717:6855440")
+    runtimeOnly fg.deobf("curse.maven:jade-538392:7446143")
+    runtimeOnly fg.deobf("maven.modrinth:occultism:1.20.1-1.158.0")
+    runtimeOnly fg.deobf("maven.modrinth:ars-ocultas:1.20.1-1.2.2")
+    runtimeOnly fg.deobf("maven.modrinth:patchouli:1.20.1-85-forge")
+
+
 }
 
 tasks.named('processResources', ProcessResources).configure {

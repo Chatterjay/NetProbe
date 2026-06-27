@@ -26,5 +26,7 @@
 
   "netprobe.cmd.toggle_on": "NetProbe 调试信息已开启 (按 F3 查看)",
   "netprobe.cmd.toggle_off": "NetProbe 调试信息已关闭",
-  "netprobe.cmd.reset": "NetProbe 全部统计已重置"
+  "netprobe.cmd.reset": "NetProbe 全部统计已重置",
+  "netprobe.cmd.blockoverlay_on": "方块流量覆盖层已开启",
+  "netprobe.cmd.blockoverlay_off": "方块流量覆盖层已关闭"
 }

@@ -27,7 +27,9 @@ public class TrafficHUD {
 
         ChunkTrafficTracker cTracker = ChunkTrafficTracker.INSTANCE;
         ChunkPos currentChunk = mc.player.chunkPosition();
-        BlockTrafficTracker.INSTANCE.expireOldEntries(30000);
+        BlockTrafficTracker.INSTANCE.trimToSize(500);
+        BlockTrafficTracker.INSTANCE.cleanupBroken(30000);
+        BlockTrafficTracker.INSTANCE.expireStale(30000);
 
         // 标题
         event.getLeft().add("");

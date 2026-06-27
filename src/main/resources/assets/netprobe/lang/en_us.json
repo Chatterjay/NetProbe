@@ -26,5 +26,7 @@
 
   "netprobe.cmd.toggle_on": "NetProbe debug info enabled (press F3 to view)",
   "netprobe.cmd.toggle_off": "NetProbe debug info disabled",
-  "netprobe.cmd.reset": "NetProbe all stats reset"
+  "netprobe.cmd.reset": "NetProbe all stats reset",
+  "netprobe.cmd.blockoverlay_on": "Block traffic overlay enabled",
+  "netprobe.cmd.blockoverlay_off": "Block traffic overlay disabled"
 }

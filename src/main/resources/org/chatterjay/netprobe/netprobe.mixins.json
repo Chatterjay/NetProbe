@@ -3,7 +3,7 @@
   "minVersion": "0.8",
   "package": "org.chatterjay.netprobe.mixin",
   "compatibilityLevel": "JAVA_8",
-  "refmap": "netprobe.refmap.json",
+  "refmap": "org/chatterjay/netprobe/netprobe.refmap.json",
   "mixins": [
   ],
   "client": [

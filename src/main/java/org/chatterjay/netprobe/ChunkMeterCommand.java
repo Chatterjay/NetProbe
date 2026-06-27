@@ -59,6 +59,15 @@ public class ChunkMeterCommand {
                             return 1;
                         })
                 )
+                .then(Commands.literal("blockoverlay")
+                        .executes(ctx -> {
+                            ChunkMeter.toggleBlockOverlay();
+                            sendMessage(ChunkMeter.isBlockOverlayVisible()
+                                    ? I18n.get("netprobe.cmd.blockoverlay_on")
+                                    : I18n.get("netprobe.cmd.blockoverlay_off"));
+                            return 1;
+                        })
+                )
         );
     }
 
