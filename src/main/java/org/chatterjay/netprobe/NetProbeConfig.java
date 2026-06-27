@@ -26,10 +26,10 @@ public class NetProbeConfig {
                 .defineInRange("refreshInterval", 10, 1, 100);
         renderHeight = builder
                 .comment("Text label height above block (in blocks)")
-                .defineInRange("renderHeight", 1.04, 0.5, 5.0);
+                .defineInRange("renderHeight", 1.5, 0.5, 5.0);
         overlayAlpha = builder
                 .comment("Block overlay face opacity (0.0 - 1.0)")
-                .defineInRange("overlayAlpha", 0.15, 0.0, 1.0);
+                .defineInRange("overlayAlpha", 0.12, 0.0, 1.0);
 
         builder.push("colors");
         colorLow = builder
