@@ -19,3 +19,7 @@ hs_err_pid*
 
 # Common working directory
 run
+
+# NeoForge moddev generated sources
+/org/
+/net/

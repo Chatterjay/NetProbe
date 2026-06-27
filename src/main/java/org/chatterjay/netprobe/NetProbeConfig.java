@@ -8,6 +8,7 @@ public class NetProbeConfig {
 
     public static final ModConfigSpec.IntValue refreshInterval;
     public static final ModConfigSpec.DoubleValue renderHeight;
+    public static final ModConfigSpec.BooleanValue labelSeeThrough;
     public static final ModConfigSpec.DoubleValue overlayAlpha;
     public static final ModConfigSpec.ConfigValue<String> colorLow;
     public static final ModConfigSpec.ConfigValue<String> colorMid;
@@ -19,6 +20,9 @@ public class NetProbeConfig {
         ModConfigSpec.Builder builder = new ModConfigSpec.Builder();
 
         builder.push("overlay");
+        labelSeeThrough = builder
+                .comment("Render labels through blocks (always visible)")
+                .define("labelSeeThrough", true);
         refreshInterval = builder
                 .comment("Minimum ticks between overlay updates (20 ticks = 1 second)")
                 .defineInRange("refreshInterval", 10, 1, 100);

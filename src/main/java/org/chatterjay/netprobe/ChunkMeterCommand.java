@@ -68,6 +68,15 @@ public class ChunkMeterCommand {
                             return 1;
                         })
                 )
+                .then(Commands.literal("debug")
+                        .executes(ctx -> {
+                            Netprobe.setDebugMode(!Netprobe.isDebugMode());
+                            sendMessage(Netprobe.isDebugMode()
+                                    ? I18n.get("netprobe.cmd.debug_on")
+                                    : I18n.get("netprobe.cmd.debug_off"));
+                            return 1;
+                        })
+                )
         );
     }
 

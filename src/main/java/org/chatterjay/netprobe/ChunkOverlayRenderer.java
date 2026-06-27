@@ -130,15 +130,18 @@ public class ChunkOverlayRenderer {
 
             Matrix4f mat = poseStack.last().pose();
 
+            Font.DisplayMode displayMode = NetProbeConfig.labelSeeThrough.get()
+                    ? Font.DisplayMode.SEE_THROUGH : Font.DisplayMode.NORMAL;
+
             font.drawInBatch(line1,
                     -font.width(line1) / 2f, 0f,
                     textColor, false, mat, bufferSource,
-                    Font.DisplayMode.SEE_THROUGH, 0, LightTexture.FULL_BRIGHT);
+                    displayMode, 0, LightTexture.FULL_BRIGHT);
 
             font.drawInBatch(line2,
                     -font.width(line2) / 2f, font.lineHeight + 2,
                     0xFFAAAAAA, false, mat, bufferSource,
-                    Font.DisplayMode.SEE_THROUGH, 0, LightTexture.FULL_BRIGHT);
+                    displayMode, 0, LightTexture.FULL_BRIGHT);
 
             poseStack.popPose();
         }

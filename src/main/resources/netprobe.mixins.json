@@ -8,6 +8,8 @@
     "ChunkPacketMixin",
     "ClientboundLevelChunkPacketDataAccessor",
     "PacketDecoderMixin",
+    "ClientboundBlockUpdateMixin",
+    "LevelBlockEntityChangedMixin",
     "SectionBlocksUpdateMixin"
   ],
   "injectors": {

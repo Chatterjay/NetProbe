@@ -12,19 +12,40 @@ public class BlockTrafficTracker {
 
     private final ConcurrentHashMap<BlockPos, long[]> blockTraffic = new ConcurrentHashMap<>();
     private final ConcurrentHashMap<BlockPos, Long> brokenPositions = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<BlockPos, Long> lastRecordTime = new ConcurrentHashMap<>();
 
     private BlockTrafficTracker() {}
 
+    public boolean isRecentDuplicate(BlockPos pos, long windowMs) {
+        long now = System.currentTimeMillis();
+        Long prev = lastRecordTime.put(pos, now);
+        return prev != null && now - prev <= windowMs;
+    }
+
     public void recordBlock(BlockPos pos, long bytes) {
+        recordBlock(pos, bytes, 0);
+    }
+
+    public void recordBlock(BlockPos pos, long bytes, long debounceMs) {
         brokenPositions.remove(pos);
         long now = System.currentTimeMillis();
-        blockTraffic.merge(pos, new long[]{bytes, 1, now, bytes}, (a, b) -> {
-            a[0] += bytes;
-            a[1]++;
-            a[2] = now;
-            a[3] = bytes;
-            return a;
-        });
+        Long prev = lastRecordTime.get(pos);
+        if (debounceMs > 0 && prev != null && now - prev <= debounceMs) {
+            blockTraffic.merge(pos, new long[]{bytes, 0, now, bytes}, (a, b) -> new long[]{
+                a[0] + b[0],
+                a[1],
+                now,
+                b[0]
+            });
+        } else {
+            lastRecordTime.put(pos, now);
+            blockTraffic.merge(pos, new long[]{bytes, 1, now, bytes}, (a, b) -> new long[]{
+                a[0] + b[0],
+                a[1] + 1,
+                now,
+                b[0]
+            });
+        }
     }
 
     public void markBroken(BlockPos pos) {
@@ -89,5 +110,7 @@ public class BlockTrafficTracker {
 
     public void reset() {
         blockTraffic.clear();
+        brokenPositions.clear();
+        lastRecordTime.clear();
     }
 }

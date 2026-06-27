@@ -12,6 +12,15 @@ public class Netprobe {
 
     public static final String MODID = "netprobe";
     private static final Logger LOGGER = LogUtils.getLogger();
+    private static boolean debugMode = false;
+
+    public static boolean isDebugMode() {
+        return debugMode;
+    }
+
+    public static void setDebugMode(boolean enabled) {
+        debugMode = enabled;
+    }
 
     public Netprobe(ModContainer modContainer) {
         modContainer.registerConfig(ModConfig.Type.CLIENT, NetProbeConfig.SPEC);

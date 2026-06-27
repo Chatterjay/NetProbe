@@ -38,10 +38,9 @@ public class ChunkTrafficTracker {
     }
 
     public void recordChunk(ChunkPos pos, long bytes) {
-        chunkTraffic.merge(pos, new long[]{bytes, bytes}, (a, b) -> {
-            a[0] += bytes;
-            a[1] = bytes;
-            return a;
+        chunkTraffic.merge(pos, new long[]{bytes, bytes}, (a, b) -> new long[]{
+            a[0] + b[0],
+            b[0]
         });
         totalBytes.addAndGet(bytes);
         chunkPacketBytes.addAndGet(bytes);
@@ -49,10 +48,9 @@ public class ChunkTrafficTracker {
     }
 
     public void addBlockBytes(ChunkPos pos, long bytes) {
-        chunkTraffic.merge(pos, new long[]{bytes, bytes}, (a, b) -> {
-            a[0] += bytes;
-            a[1] = bytes;
-            return a;
+        chunkTraffic.merge(pos, new long[]{bytes, bytes}, (a, b) -> new long[]{
+            a[0] + b[0],
+            b[0]
         });
         totalBytes.addAndGet(bytes);
         blockUpdateBytes.addAndGet(bytes);

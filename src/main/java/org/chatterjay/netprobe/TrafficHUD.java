@@ -40,11 +40,20 @@ public class TrafficHUD {
         double estActualKBps = decoderKBps / 1.3;
 
         if (NetworkStats.isAvailable()) {
-            String pct = sysKBps > 0 ? String.format("%.0f", decoderKBps / sysKBps * 100) : "0";
-            event.getLeft().add(I18n.get("netprobe.f3.system_card") + fmtKB(sysKBps) + I18n.get("netprobe.f3.system_card_unit"));
-            event.getLeft().add(I18n.get("netprobe.f3.mod_measure") + fmtKB(decoderKBps)
-                    + I18n.get("netprobe.f3.mod_measure_body") + fmtKB(estActualKBps)
-                    + I18n.get("netprobe.f3.mod_measure_tail") + pct + "%]");
+            if (sysKBps > decoderKBps / 3) {
+                String pct = String.format("%.0f", decoderKBps / sysKBps * 100);
+                event.getLeft().add(I18n.get("netprobe.f3.system_card") + fmtKB(sysKBps) + I18n.get("netprobe.f3.system_card_unit"));
+                event.getLeft().add(I18n.get("netprobe.f3.mod_measure") + fmtKB(decoderKBps)
+                        + I18n.get("netprobe.f3.mod_measure_body") + fmtKB(estActualKBps)
+                        + I18n.get("netprobe.f3.mod_measure_tail") + pct + I18n.get("netprobe.f3.mod_measure_pct"));
+            } else {
+                double ratio = decoderKBps / Math.max(estActualKBps, 0.1);
+                String compRatio = String.format("%.1f", ratio);
+                event.getLeft().add(I18n.get("netprobe.f3.system_card") + fmtKB(sysKBps) + I18n.get("netprobe.f3.system_card_unit"));
+                event.getLeft().add(I18n.get("netprobe.f3.mod_measure") + fmtKB(decoderKBps)
+                        + I18n.get("netprobe.f3.mod_measure_body") + fmtKB(estActualKBps)
+                        + I18n.get("netprobe.f3.mod_measure_comp") + compRatio + I18n.get("netprobe.f3.mod_measure_comp_tail"));
+            }
         } else {
             event.getLeft().add(I18n.get("netprobe.f3.system_loading"));
         }
