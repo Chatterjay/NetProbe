@@ -67,16 +67,6 @@ mixin {
     config "org/chatterjay/netprobe/${mod_id}.mixins.json"
 }
 
-tasks.named('compileJava', JavaCompile).configure {
-    doLast {
-        copy {
-            from layout.buildDirectory.file('tmp/compileJava/compileJava-refmap.json')
-            into layout.buildDirectory.file("resources/main/org/chatterjay/netprobe")
-            rename { "${mod_id}.refmap.json" }
-        }
-    }
-}
-
 sourceSets.main.resources { srcDir 'src/generated/resources' }
 repositories {
     maven {
