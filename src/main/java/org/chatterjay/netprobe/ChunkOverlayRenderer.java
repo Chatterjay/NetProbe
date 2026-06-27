@@ -5,6 +5,7 @@ import com.mojang.blaze3d.vertex.*;
 import net.minecraft.client.Camera;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
+import net.minecraft.client.renderer.GameRenderer;
 import net.minecraft.client.renderer.LightTexture;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.culling.Frustum;
@@ -50,6 +51,7 @@ public class ChunkOverlayRenderer {
         RenderSystem.defaultBlendFunc();
         RenderSystem.disableCull();
         RenderSystem.disableDepthTest();
+        RenderSystem.setShader(GameRenderer::getPositionColorShader);
 
         Tesselator tesselator = Tesselator.getInstance();
         BufferBuilder builder = tesselator.getBuilder();
@@ -66,7 +68,7 @@ public class ChunkOverlayRenderer {
             float r = ((color >> 16) & 0xFF) / 255f;
             float g = ((color >> 8) & 0xFF) / 255f;
             float b = (color & 0xFF) / 255f;
-            float a = 0.28f;
+            float a = 0.15f;
 
             float x0 = pos.getX() + 0.02f;
             float y0 = pos.getY() + 0.02f;
@@ -108,9 +110,6 @@ public class ChunkOverlayRenderer {
         }
 
         tesselator.end();
-
-        RenderSystem.enableCull();
-        // depth test stays disabled for text layer
 
         // --- Text labels ---
         for (Map.Entry<BlockPos, long[]> entry : entries) {
