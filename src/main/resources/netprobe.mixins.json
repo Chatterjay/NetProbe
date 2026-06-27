@@ -3,9 +3,12 @@
   "minVersion": "0.8",
   "package": "org.chatterjay.netprobe.mixin",
   "compatibilityLevel": "JAVA_21",
-  "mixins": [
-  ],
   "client": [
+    "BlockEntityDataMixin",
+    "ChunkPacketMixin",
+    "ClientboundLevelChunkPacketDataAccessor",
+    "PacketDecoderMixin",
+    "SectionBlocksUpdateMixin"
   ],
   "injectors": {
     "defaultRequire": 1
