@@ -69,10 +69,6 @@ Top区块: [-12,0]470.4 KB  [-11,0]12.3 KB
 | 正常上限 | 100 B | 低于此值的流量视为正常 |
 | 警告上限 | 500 B | 低于此值的流量为警告，高于为高流量 |
 
-## 技术实现
-
-通过 Mixin 注入 `PacketDecoder` 捕获所有入站包字节、`ClientboundLevelChunkWithLightPacket` 记录区块数据、`ClientboundBlockEntityDataPacket` 测量 NBT、`ClientboundSectionBlocksUpdatePacket` 和 `ClientboundBlockUpdatePacket` 追踪方块更新。`Level.blockEntityChanged` mixin 检测方块实体内容变更。系统网卡速率通过 `netstat -e` 轮询获取。
-
 ## 许可
 
 GNU AGPL 3.0

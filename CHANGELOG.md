@@ -4,7 +4,6 @@
 
 ### 移植到 1.21.1 NeoForge
 - 从 1.20.1 Forge 迁移至 1.21.1 NeoForge（ModDevGradle）
-- 事件总线：`MinecraftForge.EVENT_BUS` → `NeoForge.EVENT_BUS`
 - `ForgeConfigSpec` 替换为 `ModConfigSpec`
 - 移除 Cloth Config 依赖，NeoForge 自动生成配置界面
 
