@@ -1,6 +1,5 @@
 package org.chatterjay.netprobe;
 
-import com.mojang.blaze3d.platform.GlStateManager;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.DefaultVertexFormat;
 import com.mojang.blaze3d.vertex.PoseStack;
@@ -19,6 +18,9 @@ import net.minecraft.client.renderer.RenderType;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.phys.Vec3;
 
+import net.neoforged.api.distmarker.Dist;
+import net.neoforged.bus.api.SubscribeEvent;
+import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.client.event.RenderLevelStageEvent;
 
 import org.joml.Matrix4f;
@@ -26,6 +28,7 @@ import org.joml.Matrix4f;
 import java.util.List;
 import java.util.Map;
 
+@EventBusSubscriber(modid = Netprobe.MODID, value = Dist.CLIENT, bus = EventBusSubscriber.Bus.GAME)
 public class ChunkOverlayRenderer {
 
     private static long lastRefreshTime = 0;
@@ -52,6 +55,7 @@ public class ChunkOverlayRenderer {
                     .setCullState(new RenderStateShard.CullStateShard(false))
                     .createCompositeState(true));
 
+    @SubscribeEvent
     public static void onRenderLevelStage(RenderLevelStageEvent event) {
         if (event.getStage() != RenderLevelStageEvent.Stage.AFTER_PARTICLES) return;
 
@@ -84,7 +88,6 @@ public class ChunkOverlayRenderer {
         PoseStack.Pose poseEntry = poseStack.last();
         Matrix4f matrix = poseEntry.pose();
 
-        // Pass 1: Block face overlays (translucent, no depth test)
         OVERLAY.setupRenderState();
         VertexConsumer consumer = bufferSource.getBuffer(OVERLAY);
         for (Map.Entry<BlockPos, long[]> entry : entries) {
@@ -104,7 +107,6 @@ public class ChunkOverlayRenderer {
         bufferSource.endBatch(OVERLAY);
         OVERLAY.clearRenderState();
 
-        // Pass 2: Text labels
         for (Map.Entry<BlockPos, long[]> entry : entries) {
             long[] data = entry.getValue();
             long total = data[0];
@@ -150,17 +152,11 @@ public class ChunkOverlayRenderer {
         float x0 = pos.getX() + 0.02f, y0 = pos.getY() + 0.02f, z0 = pos.getZ() + 0.02f;
         float x1 = pos.getX() + 0.98f, y1 = pos.getY() + 0.98f, z1 = pos.getZ() + 0.98f;
 
-        // Top Y+
         quad(consumer, pose, x0, y1, z0, x1, y1, z0, x1, y1, z1, x0, y1, z1, r, g, b, a);
-        // Bottom Y-
         quad(consumer, pose, x0, y0, z0, x0, y0, z1, x1, y0, z1, x1, y0, z0, r, g, b, a);
-        // North -Z
         quad(consumer, pose, x0, y0, z0, x1, y0, z0, x1, y1, z0, x0, y1, z0, r, g, b, a);
-        // South +Z
         quad(consumer, pose, x0, y0, z1, x0, y1, z1, x1, y1, z1, x1, y0, z1, r, g, b, a);
-        // West -X
         quad(consumer, pose, x0, y0, z0, x0, y1, z0, x0, y1, z1, x0, y0, z1, r, g, b, a);
-        // East +X
         quad(consumer, pose, x1, y0, z0, x1, y0, z1, x1, y1, z1, x1, y1, z0, r, g, b, a);
     }
 

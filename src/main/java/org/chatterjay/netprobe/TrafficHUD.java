@@ -7,13 +7,18 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.HitResult;
+import net.neoforged.api.distmarker.Dist;
+import net.neoforged.bus.api.SubscribeEvent;
+import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.client.event.CustomizeGuiOverlayEvent;
 
 import java.util.List;
 import java.util.Map;
 
+@EventBusSubscriber(modid = Netprobe.MODID, value = Dist.CLIENT, bus = EventBusSubscriber.Bus.GAME)
 public class TrafficHUD {
 
+    @SubscribeEvent
     public static void onDebugText(CustomizeGuiOverlayEvent.DebugText event) {
         if (!ChunkMeter.isDebugVisible()) return;
 
