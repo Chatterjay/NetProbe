@@ -9,6 +9,8 @@ version = "${mod_version}"
 displayName = "${mod_name}"
 authors = "${mod_authors}"
 description = '''${mod_description}'''
+logoFile = "pack.png"
+side = "CLIENT"
 displayTest = "NONE"
 
 [[dependencies."${mod_id}"]]

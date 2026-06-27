@@ -1,17 +1,21 @@
 # NetProbe
 
-一个客户端侧 Minecraft Forge 模组，用于实时监控入站网络流量。
+一个客户端侧 Minecraft 模组，用于实时监控入站网络流量。
+
+**Minecraft 1.20.1 · Forge**
 
 ## 功能
 
 - **实时流量监控** — 在 F3 调试屏幕中直接查看网络流量
 - **多层测量**：
-  - 系统级：通过 `netstat -e` 读取物理网卡接收速率
-  - Minecraft 网络层：通过 `PacketDecoder` mixin 捕获所有数据包字节
-  - 区块/方块分析：追踪区块数据载荷、方块实体 NBT 和区块截面更新
+  - **系统级**：通过 `netstat -e` 读取物理网卡接收速率
+  - **Minecraft 网络层**：通过 `PacketDecoder` mixin 捕获所有数据包字节
+  - **区块/方块分析**：追踪区块数据载荷、方块实体 NBT 和区块截面更新
+- **方块流量覆盖层** — 世界中带颜色的热力图显示每方块的流量
 - **指向方块追踪** — 将准星对准方块，查看其流量消耗
-- **多语言支持** — 支持中文和英文（自动跟随游戏语言）
-- **无需服务端安装** — 纯客户端模组
+- **穿透显示文本** — 可配置标签文字是否穿透方块始终可见
+- **双语言支持** — 中文和英文（自动跟随游戏语言）
+- **无需服务端** — 纯客户端模组
 
 ## 指令
 
@@ -20,6 +24,8 @@
 | `/chunkmeter` | 切换 F3 调试叠加层 |
 | `/chunkmeter reset` | 重置所有统计数据 |
 | `/chunkmeter inspect` | 在聊天框显示详细流量数据 |
+| `/chunkmeter overlay` | 切换方块流量世界覆盖层 |
+| `/chunkmeter debug` | 切换调试日志 |
 
 按 **F3** 打开调试屏幕查看 NetProbe 数据（需先用 `/chunkmeter` 开启）。
 
@@ -47,9 +53,25 @@ Top区块: [-12,0]470.4 KB  [-11,0]12.3 KB
 - **累** = 该区块或方块的累计流量
 - **单** = 最近一次数据包的估算大小
 
+## 配置
+
+通过 Forge 模组列表 → Config → NetProbe 访问。
+
+| 配置项 | 默认值 | 说明 |
+|--------|--------|------|
+| 刷新间隔 | 10 tick | 覆盖层更新间隔的最小 tick 数 |
+| 标签高度 | 1.5 | 方块上方文字标签的高度（以方块为单位） |
+| 覆盖层不透明度 | 0.12 | 方块覆盖层面的不透明度 |
+| 穿透显示文本 | 开启 | 标签文字可穿透方块始终可见 |
+| 正常颜色 | 00FF00 | 正常流量的覆盖层颜色 |
+| 警告颜色 | FFFF00 | 警告流量的覆盖层颜色 |
+| 高流量颜色 | FF0000 | 高流量的覆盖层颜色 |
+| 正常上限 | 100 B | 低于此值的流量视为正常 |
+| 警告上限 | 500 B | 低于此值的流量为警告，高于为高流量 |
+
 ## 技术实现
 
-通过 Mixin 注入 `PacketDecoder` 捕获所有入站包字节、`ClientboundLevelChunkWithLightPacket` 记录区块数据、`ClientboundBlockEntityDataPacket` 测量 NBT、`ClientboundSectionBlocksUpdatePacket` 追踪方块更新。系统网卡速率通过 `netstat -e` 轮询获取。
+通过 Mixin 注入 `PacketDecoder` 捕获所有入站包字节、`ClientboundLevelChunkWithLightPacket` 记录区块数据、`ClientboundBlockEntityDataPacket` 测量 NBT、`ClientboundSectionBlocksUpdatePacket` 和 `ClientboundBlockUpdatePacket` 追踪方块更新。`Level.blockEntityChanged` mixin 检测方块实体内容变更。系统网卡速率通过 `netstat -e` 轮询获取。
 
 ## 许可
 
