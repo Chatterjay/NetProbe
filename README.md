@@ -1,82 +1,78 @@
 # NetProbe
 
-A client-side Minecraft mod for real-time inbound network traffic monitoring.
+一个客户端侧 Minecraft 模组，用于实时监控入站网络流量。
 
 **Minecraft 1.21.1 · NeoForge**
 
-## Features
+## 功能
 
-- **Real-time traffic monitor** — View network traffic directly in the F3 debug screen
-- **Multi-layer measurement**:
-  - **System-level**: Reads physical NIC RX rate via `netstat -e`
-  - **Minecraft network layer**: Captures all packet bytes via `PacketDecoder` mixin
-  - **Chunk/Block analysis**: Tracks chunk data payloads, block entity NBT, and section block updates
-- **Block traffic overlay** — In-world colored heatmap showing traffic per block
-- **Target block tracking** — Point your crosshair at any block to see its traffic
-- **See-through labels** — Configurable text visibility through blocks
-- **Dual-language** — Chinese and English (auto-follows game language)
-- **Server-free** — Client-side only, no server installation needed
+- **实时流量监控** — 在 F3 调试屏幕中直接查看网络流量
+- **多层测量**：
+  - **系统级**：通过 `netstat -e` 读取物理网卡接收速率
+  - **Minecraft 网络层**：通过 `PacketDecoder` mixin 捕获所有数据包字节
+  - **区块/方块分析**：追踪区块数据载荷、方块实体 NBT 和区块截面更新
+- **方块流量覆盖层** — 世界中带颜色的热力图显示每方块的流量
+- **指向方块追踪** — 将准星对准方块，查看其流量消耗
+- **穿透显示文本** — 可配置标签文字是否穿透方块始终可见
+- **双语言支持** — 中文和英文（自动跟随游戏语言）
+- **无需服务端** — 纯客户端模组
 
-## Commands
+## 指令
 
-| Command | Description |
-|---------|-------------|
-| `/chunkmeter` | Toggle F3 debug overlay |
-| `/chunkmeter reset` | Reset all statistics |
-| `/chunkmeter inspect` | Show detailed traffic data in chat |
-| `/chunkmeter overlay` | Toggle block traffic world overlay |
-| `/chunkmeter debug` | Toggle debug logging |
+| 指令 | 说明 |
+|------|------|
+| `/chunkmeter` | 切换 F3 调试叠加层 |
+| `/chunkmeter reset` | 重置所有统计数据 |
+| `/chunkmeter inspect` | 在聊天框显示详细流量数据 |
+| `/chunkmeter overlay` | 切换方块流量世界覆盖层 |
+| `/chunkmeter debug` | 切换调试日志 |
 
-Press **F3** to open the debug screen and view NetProbe data (requires `/chunkmeter` to enable first).
+按 **F3** 打开调试屏幕查看 NetProbe 数据（需先用 `/chunkmeter` 开启）。
 
-## F3 Display Legend
+## F3 显示说明
 
 ```
-=== NetProbe Traffic ===
-System NIC: 2500 KB/s  (physical adapter RX)
-Mod: 500 KB/s (raw) >> ~385 KB/s (est. compressed) [20%]
-Total MC traffic: 64.5 MB
---- Chunk / Block Analysis ---
-Chunk packets: 9.7 MB  + Block updates: 255.9 KB  = 10.0 MB
-Chunk records: 634
-Current chunk [-12,0]: total 470.4 KB  last 105 B
-Top chunks: [-12,0]470.4 KB  [-11,0]12.3 KB
-Tracked blocks: 39  total 432.2 KB
-Target block [-44,64,9]: total 143.9 KB  last 5 B  12 updates
+=== NetProbe 流量监控 ===
+系统网卡: 2500 KB/s  (物理网卡接收速率)
+模组测: 500 KB/s (原始) >> ~385 KB/s (压缩后估算) [20%]
+Minecraft总流量: 64.5 MB
+--- 区块/方块分析 ---
+区块数据包: 9.7 MB  + 方块更新: 255.9 KB  = 10.0 MB
+区块记录数: 634
+当前区块 [-12,0]: 累 470.4 KB  单 105 B
+Top区块: [-12,0]470.4 KB  [-11,0]12.3 KB
+追踪方块: 39 个  共 432.2 KB
+指向方块 [-44,64,9]: 累 143.9 KB  单 5 B  12次更新
 ```
 
-- **System NIC** = Physical NIC RX rate (via `netstat -e`)
-- **Mod** = Raw captured Minecraft packet bytes
-- **Est. compressed** = Raw ÷ 1.3 (zlib compression ratio), approximates actual wire traffic
-- **Percentage** = Mod measurement / System NIC ratio
-- **total** = Cumulative traffic for that chunk or block
-- **last** = Estimated size of the most recent packet
+**说明：**
+- **系统网卡** = 物理网卡接收速率（通过 `netstat -e` 读取）
+- **模组测** = 捕获的原始 Minecraft 数据包字节
+- **压缩后估算** = 原始值 ÷ 1.3（zlib 压缩率），接近实际网线流量
+- **百分比** = 模组测 / 系统网卡，反映 Minecraft 流量占比
+- **累** = 该区块或方块的累计流量
+- **单** = 最近一次数据包的估算大小
 
-## Configuration
+## 配置
 
-Accessible via NeoForge mod list → NetProbe → Config.
+通过 NeoForge 模组列表 → NetProbe → Config 访问。
 
-| Setting | Default | Description |
-|---------|---------|-------------|
-| Refresh Interval | 10 ticks | Minimum ticks between overlay updates |
-| Label Height | 1.5 | Text label height above block (in blocks) |
-| Overlay Alpha | 0.12 | Block overlay face opacity |
-| Label See Through | true | Render labels through blocks |
-| Normal Color | 00FF00 | Color for normal traffic overlays |
-| Warning Color | FFFF00 | Color for warning traffic overlays |
-| High Color | FF0000 | Color for high traffic overlays |
-| Normal Max | 100 B | Traffic threshold for normal |
-| Warning Max | 500 B | Traffic threshold for warning |
+| 配置项 | 默认值 | 说明 |
+|--------|--------|------|
+| 刷新间隔 | 10 tick | 覆盖层更新间隔的最小 tick 数 |
+| 标签高度 | 1.5 | 方块上方文字标签的高度（以方块为单位） |
+| 覆盖层不透明度 | 0.12 | 方块覆盖层面的不透明度 |
+| 穿透显示文本 | 开启 | 标签文字可穿透方块始终可见 |
+| 正常颜色 | 00FF00 | 正常流量的覆盖层颜色 |
+| 警告颜色 | FFFF00 | 警告流量的覆盖层颜色 |
+| 高流量颜色 | FF0000 | 高流量的覆盖层颜色 |
+| 正常上限 | 100 B | 低于此值的流量视为正常 |
+| 警告上限 | 500 B | 低于此值的流量为警告，高于为高流量 |
 
-## Technical Implementation
+## 技术实现
 
-Uses Sponge Mixin to inject into `PacketDecoder` for total packet capture,
-`ClientboundLevelChunkWithLightPacket` for chunk data recording,
-`ClientboundBlockEntityDataPacket` for NBT payload measurement,
-`ClientboundSectionBlocksUpdatePacket` and `ClientboundBlockUpdatePacket` for block updates,
-and `Level.blockEntityChanged` for block entity change detection.
-System NIC rate is polled via `netstat -e`.
+通过 Mixin 注入 `PacketDecoder` 捕获所有入站包字节、`ClientboundLevelChunkWithLightPacket` 记录区块数据、`ClientboundBlockEntityDataPacket` 测量 NBT、`ClientboundSectionBlocksUpdatePacket` 和 `ClientboundBlockUpdatePacket` 追踪方块更新。`Level.blockEntityChanged` mixin 检测方块实体内容变更。系统网卡速率通过 `netstat -e` 轮询获取。
 
-## License
+## 许可
 
 GNU AGPL 3.0
